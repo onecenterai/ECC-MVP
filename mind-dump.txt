@@ -1,0 +1,25 @@
+at the core, we need to be able to communicate with the ai model
+
+How do determine "complex cases" in order to know when to forward a call?
+For now the only heuristic we would use is, the presence of casualties...
+
+so if human life is at stake, or harm has been done to human life, then we would forward the call to a human agent, 
+other wise we would just send a notification, to the corresponding agency.
+
+scenario 1: Very Critical Accident (Complex Scenario)
+
+A: Hello, How can I help you today?
+H: Hello, There has been a fire accident
+A: Could you please tell me the location of this accident, and tell me if there are casualties at this location 
+H: The accident happend at X-Place, and there are people insode the buring building
+A: Okay I would notify the fire service, and the ambulance now, and forward your call to a human agent?
+
+scenario 2: Less Critical Accident (Simple Scenario)
+
+A: Hello, How can I help you today?
+H: Hello, there has been an electrical accident, one of the wire poles in my street has fallen down
+A: Okay, could you please tell me the name of your street, and tell me if there are currently any casualties as this location
+H: Okay, the name of my street is Y-street, for now, there's no human life at risk.
+A: Alright, I would notify the fire service, and the electrical agency incharge.
+# Agent would proceed to tell the human to avoid the area around the fire pole, in order to not get electricuted
+
