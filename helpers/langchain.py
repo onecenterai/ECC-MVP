@@ -3,14 +3,7 @@ from langchain.agents import initialize_agent
 from langchain.agents.types import AgentType
 from langchain.schema import HumanMessage, AIMessage
 
-from helpers.model_tools import GetEndpointParams, ApiQuery
-
-def get_task_list(id):
-    tasks = Endpoint.get_all(id)
-    task_list = ''
-    for task in tasks:
-        task_list += f' - {task.name} \n'
-    return task_list
+from helpers.model_tools import SendEmergencyNotification, ForwardCallToAgency
 
 def qa_chain(question, history=[]):
     #embeddings = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
@@ -28,7 +21,32 @@ def qa_chain(question, history=[]):
             "- Notify the necessary Government agency to handle the emergency"
             "- Forward the caller's call to a human agent"
 
+            "I'll give you some rule to follow you can use to determine when to carry out the tasks"
+            "Nevertheless, you're not bound to these rules, let them just serve as a guide"
             
+            "RULE 1: When the caller tells you about the emergency, inquire if there are casualties, or potential casualties \
+                if there are casualties, you would need to forward the call to a human agent."
+            
+            "RULE 2: if there are no casualties, you would only need to send a notification to the Government agency \
+                that is ment to handle the emergency at hand."
+            
+            "RULE 3: when sending a notification, you will need to send the location the emergency has occured at, and the emergency that has happened \
+                for example: a bank robbery, or a fire accident, to get this information, you'll need to ask the caller"
+            
+            "To forward a call to an Agency, you would need to use the `forward_call_to_government_agency` tool. \
+                The input for this tool is going to be the name of the goverment agency ment to handle the emergency at hand."
+                  
+            "To send a notification to an Agency, you would need to use the `send_emergency_notification` tool. \
+                The input for this tool is going to be a dictionary with keys `location`, `emergency-name`, and `agency-name`, \
+                along side their corresponding values"
+
+            "The Goverment Agencies that has been designated for different emergency situations include:"
+            "- Police"
+            "- Fire Service"
+            "- Health Care Service"
+
+            "Based on the emergency at hand, you would have to choose the best service to contact."
+                      
             "You can ask follow-up questions to help you understand the current emergency, and to know the best course of action to take."
             "If you are unsure of how to help, you can forward the call to a human agent"
             "Try to sound as human as possible"
@@ -38,10 +56,10 @@ def qa_chain(question, history=[]):
         '''
     
     tools = [
-        GetEndpointParams(),
-        ApiQuery()
-
+        SendEmergencyNotification(),
+        ForwardCallToAgency()
     ]
+
     executor = initialize_agent(
         agent = AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
         tools=tools,

@@ -87,8 +87,13 @@ from langchain.callbacks.manager import AsyncCallbackManagerForToolRun, Callback
 #         res = requests.request(method=req_type, url=url, data=json.dumps(body), headers=headers)
 
 #         return res.json()
-    
-        
-        
+
+
+
 class SendEmergencyNotification(BaseTool):
+    name = 'send_emergency_notification'
+    ...
+
+class ForwardCallToAgency(BaseTool):
+    name = 'forward_call_to_government_agency'
     ...
