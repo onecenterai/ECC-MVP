@@ -6,7 +6,6 @@ from langchain.schema import HumanMessage, AIMessage
 from helpers.model_tools import SendEmergencyNotification, ForwardCallToAgency
 
 def qa_chain(question, history=[]):
-    #embeddings = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
     
     llm = ChatOpenAI()
     

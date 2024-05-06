@@ -19,4 +19,5 @@ class ForwardCallToAgency(BaseTool):
     description = f'Useful when you need to forward very critical emergencies to a human agent.'
 
     def _run(self, run_manager: Optional[CallbackManagerForToolRun]=None, *args, **kwargs) -> dict:
+        
         return {'message':'Call forwarded successfully'}
