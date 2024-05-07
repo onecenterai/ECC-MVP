@@ -12,10 +12,13 @@ bp = Blueprint('call', __name__, template_folder='templates')
 @bp.post('/call/initialize')
 #@platform_auth_required
 def make_intial_call_response():
-        session_id = request.json.get('sessionId')
-        answer = f"Hello, welcome to the Emergercy Hotline! How may I assist you today?"
-        Call.create(session_id, "Hello", answer)
-        return answer
+        try:
+            session_id = request.json.get('sessionId')
+            answer = f"Hello, welcome to the Emergercy Hotline! How may I assist you today?"
+            Call.create(session_id=session_id, question="Hello", answer=answer)
+            return answer
+        except Exception as e:
+             raise e
 
 @bp.post('/call/inprogress')
 #@platform_auth_required
@@ -34,7 +37,7 @@ def respond_to_call_in_progress():
     # else:
     #     answer = "Sorry, I don't have answer for that at the moment."
 
-    Call.create(session_id, question, answer)
+    Call.create(session_id=session_id, question=question, answer=answer)
     return answer
 
 @bp.post('/call/status')

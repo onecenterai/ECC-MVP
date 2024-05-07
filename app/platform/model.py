@@ -1,7 +1,10 @@
 import bcrypt
 from app import db
+from config.db import Base
 
 class Platform(db.Model):
+    __tablename__ = 'platforms'
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), unique=True)
     username = db.Column(db.String(255), unique=True)

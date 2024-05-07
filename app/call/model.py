@@ -1,6 +1,9 @@
 from app import db
+from config.db import Base
 
 class Call(db.Model):
+    __tablename__ = 'calls'
+
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String)
     question = db.Column(db.String)

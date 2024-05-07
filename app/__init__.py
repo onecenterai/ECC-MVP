@@ -6,6 +6,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 import os
 from dotenv import load_dotenv
+from config.db import Base
 
 load_dotenv()
 
@@ -17,6 +18,11 @@ db = SQLAlchemy(app)
 ma = Marshmallow(app)
 CORS(app)
 JWTManager(app)
+
+# print('checking metadata ...')
+# print('Base Metadata: ', Base.metadata)
+# print('db metadata: ', db.metadata)
+# print('equality: ', db.metadata == Base.metadata)
 
 # Celery
 from app.celery import make_celery
