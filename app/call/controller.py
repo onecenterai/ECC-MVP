@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from app.route_guard import platform_auth_required
+#from app.route_guard import platform_auth_required
 
 from app.call.model import Call
 
@@ -10,7 +10,7 @@ from helpers.langchain import qa_chain
 bp = Blueprint('call', __name__, template_folder='templates')
 
 @bp.post('/call/initialize')
-@platform_auth_required
+#@platform_auth_required
 def make_intial_call_response():
         session_id = request.json.get('sessionId')
         answer = f"Hello, welcome to the Emergercy Hotline! How may I assist you today?"
@@ -18,7 +18,7 @@ def make_intial_call_response():
         return answer
 
 @bp.post('/call/inprogress')
-@platform_auth_required
+#@platform_auth_required
 def respond_to_call_in_progress():
     answer = "Sorry, could you repeat that please?"  
     # do radysis logic here
@@ -38,6 +38,6 @@ def respond_to_call_in_progress():
     return answer
 
 @bp.post('/call/status')
-@platform_auth_required
+#@platform_auth_required
 def get_call_status():
     return ""

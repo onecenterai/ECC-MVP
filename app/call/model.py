@@ -27,7 +27,7 @@ class Call(db.Model):
         return cls.query.filter_by(session_id=session_id).order_by(cls.id.desc()).all()
     
     @classmethod
-    def create(cls, partner_id, session_id, question, answer):
-        call = cls(partner_id=partner_id, session_id=session_id, question=question, answer=answer)
+    def create(cls, session_id, question, answer):
+        call = cls(session_id=session_id, question=question, answer=answer)
         call.save()
         return call
