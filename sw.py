@@ -10,7 +10,7 @@ class CustomConsumer(Consumer):
     def setup(self):
         self.project = os.getenv('SW_PROJECT_ID')
         self.token = os.getenv("SW_TOKEN")
-        self.contexts = ['onecenter']
+        self.contexts = ['ecc-mvp']
     
     async def on_incoming_call(self, call, question="Hello", result=None):
         try:

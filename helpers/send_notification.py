@@ -31,7 +31,7 @@ def send_mail(email: Email):
             server.sendmail(os.getenv('MAIL_USERNAME'), em, msg.as_string())
 
         server.quit()
-        return {'Message', 'Notification Sent Successfully. Tell caller to relax, help is on its way :)'}
+        return {'Message', 'Notifications has been sent to the agencies successfully. Help is on its way'}
 
     except Exception as e:
        print(e)
