@@ -5,12 +5,14 @@ class Call(db.Model):
     __tablename__ = 'calls'
 
     id = db.Column(db.Integer, primary_key=True)
+    from_phone = db.Column(db.String, default='unavailable', nullable=True)
     session_id = db.Column(db.String)
     question = db.Column(db.String)
     answer = db.Column(db.String)
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now())
     is_deleted = db.Column(db.Boolean, default=False)
+
 
     def save(self):
         db.session.add(self)
@@ -30,7 +32,7 @@ class Call(db.Model):
         return cls.query.filter_by(session_id=session_id).order_by(cls.id.desc()).all()
     
     @classmethod
-    def create(cls, session_id, question, answer):
-        call = cls(session_id=session_id, question=question, answer=answer)
+    def create(cls, session_id, question, answer, from_phone=None):
+        call = cls(from_phone=from_phone, session_id=session_id, question=question, answer=answer)
         call.save()
         return call
