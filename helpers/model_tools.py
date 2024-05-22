@@ -32,13 +32,13 @@ class SendEmergencyNotification(BaseTool):
 
         return res
 
-credentials = get_gmail_credentials(
-    token_file='token.json',
-    scopes=['https://mail.google.com/'],
-    client_secrets_file='creds.json'
-)
+# credentials = get_gmail_credentials(
+#     token_file='token.json',
+#     scopes=['https://mail.google.com/'],
+#     client_secrets_file='creds.json'
+# )
 
-api_resource = build_resource_service(credentials=credentials)
+# api_resource = build_resource_service(credentials=credentials)
 
 
 

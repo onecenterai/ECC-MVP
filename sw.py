@@ -4,7 +4,7 @@ import os
 from app.call.model import Call
 from helpers.langchain import qa_chain
 from app import app
-from flask import g
+
 
 class CustomConsumer(Consumer):
     def setup(self):
