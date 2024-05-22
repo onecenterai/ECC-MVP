@@ -27,7 +27,9 @@ class CustomConsumer(Consumer):
 
                         log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}')
                         Call.create(from_phone, call_id, question, answer)
+
                         question = await call.prompt_tts(prompt_type='speech', text=answer)
+                        log.info(f'\n\n {vars(question)} \n\n')
                         await self.on_incoming_call(call, question.result, result)
                 else:
                     print('Continued Call')
