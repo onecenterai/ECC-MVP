@@ -4,12 +4,6 @@ import requests
 from typing import Optional
 
 from langchain.tools import BaseTool, GmailSendMessage
-# from langchain_community.agent_toolkits import GmailToolkit
-# from langchain_community.tools.gmail.utils import (
-#     build_resource_service,
-#     get_gmail_credentials,
-# )
-from langchain.tools.gmail.utils import build_resource_service, get_gmail_credentials
 from langchain.callbacks.manager import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
 
 
@@ -31,16 +25,6 @@ class SendEmergencyNotification(BaseTool):
         res = send_notification.send_mail(target_emails)
 
         return res
-
-# credentials = get_gmail_credentials(
-#     token_file='token.json',
-#     scopes=['https://mail.google.com/'],
-#     client_secrets_file='creds.json'
-# )
-
-# api_resource = build_resource_service(credentials=credentials)
-
-
 
 class ForwardCallToAgency(BaseTool):
     name = 'forward_call_to_government_agency'
