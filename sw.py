@@ -23,7 +23,7 @@ class CustomConsumer(Consumer):
                         from_phone = result.event.payload.get('device').get('params').get('from_number')
                                                     
                         answer = f'ECC, What is your Emergency?'
-                        Call.create(from_phone, call_id, question, answer)
+                        Call.create(from_phone=from_phone, session_id=call_id, question=question, answer=answer)
 
                         log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
 
@@ -39,7 +39,7 @@ class CustomConsumer(Consumer):
 
                     history = Call.get_by_session_id(call_id)
                     answer = qa_chain(question, history)
-                    Call.create(from_phone, call_id, question, answer)
+                    Call.create(from_phone=from_phone, session_id=call_id, question=question, answer=answer)
 
                     log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
                     
