@@ -90,7 +90,7 @@ jsonschema==4.20.0
 jsonschema-specifications==2023.11.2
 kiwisolver==1.4.5
 kombu==5.2.4
-langchain==0.1.1
+langchain==0.0.292
 loguru==0.7.2
 lxml==4.9.3
 Mako==1.2.4
