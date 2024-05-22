@@ -16,7 +16,6 @@ class CustomConsumer(Consumer):
         try:
             with app.app_context():
                 if not result:
-                    print('New Call')
                     log.info('\n\n--- New Call ---')
                     result = await call.answer()
                     if result.successful:
@@ -25,14 +24,13 @@ class CustomConsumer(Consumer):
                                                     
                         answer = f'ECC, What is your Emergency?'
 
-                        log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}')
+                        log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
                         Call.create(from_phone, call_id, question, answer)
 
-                        question = await call.prompt_tts(prompt_type='speech', text=answer)
-                        log.info(f'\n\n {vars(question)} \n\n')
+                        question = await call.prompt_tts(prompt_type='speech', text=answer, speech_language='en-US')
+
                         await self.on_incoming_call(call, question.result, result)
                 else:
-                    print('Continued Call')
                     log.info('\n--- Continue Call ---')
                     call_id = result.event.payload.get('call_id')
                     from_phone = result.event.payload.get('device').get('params').get('from_number')
@@ -40,10 +38,7 @@ class CustomConsumer(Consumer):
                     history = Call.get_by_session_id(call_id)
                     answer = qa_chain(question, history)
 
-                    history = Call.get_by_session_id(call_id)
-                    answer = qa_chain(question, history)
-
-                    log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}')
+                    log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
                     Call.create(from_phone, call_id, question, answer)
                     question = await call.prompt_tts(prompt_type='speech', text=answer)
                     await self.on_incoming_call(call, question.result, result)
