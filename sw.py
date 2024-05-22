@@ -23,11 +23,13 @@ class CustomConsumer(Consumer):
                         from_phone = result.event.payload.get('device').get('params').get('from_number')
                                                     
                         answer = f'ECC, What is your Emergency?'
-
-                        log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
                         Call.create(from_phone, call_id, question, answer)
 
+                        log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
+
                         question = await call.prompt_tts(prompt_type='speech', text=answer, speech_language='en-US')
+
+                        log.info(f'\n\nquestion: {question.result} --- result: {result} \n\n')
 
                         await self.on_incoming_call(call, question.result, result)
                 else:
@@ -37,9 +39,10 @@ class CustomConsumer(Consumer):
 
                     history = Call.get_by_session_id(call_id)
                     answer = qa_chain(question, history)
+                    Call.create(from_phone, call_id, question, answer)
 
                     log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
-                    Call.create(from_phone, call_id, question, answer)
+                    
                     question = await call.prompt_tts(prompt_type='speech', text=answer)
                     await self.on_incoming_call(call, question.result, result)
         except Exception as e:
