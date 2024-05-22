@@ -136,7 +136,7 @@ pyasn1-modules==0.3.0
 pycparser==2.21
 pycryptodome==3.19.0
 pydantic==2
-pydantic_core==2.14.5
+pydantic_core==2.0.1
 pydeck==0.8.1b0
 Pygments==2.15.1
 PyJWT==2.4.0
