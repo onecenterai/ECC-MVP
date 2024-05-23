@@ -38,7 +38,10 @@ class CustomConsumer(Consumer):
                     log.info(f'\nfrom phone: {from_phone} \nquestion: {question}')
 
                     history = Call.get_by_session_id(call_id)
-                    answer = qa_chain(question, history)
+                    
+                     # Use a thread to run qa_chain to avoid blocking the main event loop
+                    loop = asyncio.get_event_loop()
+                    answer = await loop.run_in_executor(None, qa_chain, question, history)
                     
                     Call.create(from_phone=from_phone, session_id=call_id, question=question, answer=answer)
 
@@ -47,7 +50,7 @@ class CustomConsumer(Consumer):
                     question = await call.prompt_tts(prompt_type='speech', text=answer)
                     await self.on_incoming_call(call, question.result, result)
         except Exception as e:
-            print(e)
+            log.error(e)
             pass
 
 # Run your consumer..
