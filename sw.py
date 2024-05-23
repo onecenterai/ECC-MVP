@@ -4,7 +4,8 @@ import os
 from app.call.model import Call
 from helpers.langchain import qa_chain
 from app import app
-from logger import log
+from logger import sw_logger
+import traceback
 
 class CustomConsumer(Consumer):
     def setup(self):
@@ -16,7 +17,7 @@ class CustomConsumer(Consumer):
         try:
             with app.app_context():
                 if not result:
-                    log.info('\n\n--- New Call ---')
+                    sw_logger.info('\n\n--- New Call ---')
                     result = await call.answer()
                     if result.successful:
                         call_id = result.event.payload.get('call_id')
@@ -25,17 +26,17 @@ class CustomConsumer(Consumer):
                         answer = f'ECC, What is your Emergency?'
                         Call.create(from_phone=from_phone, session_id=call_id, question=question, answer=answer)
 
-                        log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
+                        sw_logger.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
 
                         question = await call.prompt_tts(prompt_type='speech', text=answer, speech_language='en-US')
 
                         await self.on_incoming_call(call, question.result, result)
                 else:
-                    log.info('\n--- Continue Call ---')
+                    sw_logger.info('\n--- Continue Call ---')
                     call_id = result.event.payload.get('call_id')
                     from_phone = result.event.payload.get('device').get('params').get('from_number')
                     
-                    log.info(f'\nfrom phone: {from_phone} \nquestion: {question}')
+                    sw_logger.info(f'\nfrom phone: {from_phone} \nquestion: {question}')
 
                     history = Call.get_by_session_id(call_id)
                     
@@ -45,12 +46,13 @@ class CustomConsumer(Consumer):
                     
                     Call.create(from_phone=from_phone, session_id=call_id, question=question, answer=answer)
 
-                    log.info(f'\nanswer: {answer}\n')
+                    sw_logger.info(f'\nanswer: {answer}\n')
                     
                     question = await call.prompt_tts(prompt_type='speech', text=answer)
                     await self.on_incoming_call(call, question.result, result)
         except Exception as e:
-            log.error(e)
+            sw_logger.error('Error Making Calls: %s', str(e))
+            sw_logger.error(traceback.format_exc())
             pass
 
 # Run your consumer..
