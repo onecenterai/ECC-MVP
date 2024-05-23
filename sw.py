@@ -34,13 +34,15 @@ class CustomConsumer(Consumer):
                     log.info('\n--- Continue Call ---')
                     call_id = result.event.payload.get('call_id')
                     from_phone = result.event.payload.get('device').get('params').get('from_number')
+                    
+                    log.info(f'\nfrom phone: {from_phone} \nquestion: {question}')
 
                     history = Call.get_by_session_id(call_id)
                     answer = qa_chain(question, history)
                     
                     Call.create(from_phone=from_phone, session_id=call_id, question=question, answer=answer)
 
-                    log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
+                    log.info(f'\nanswer: {answer}\n')
                     
                     question = await call.prompt_tts(prompt_type='speech', text=answer)
                     await self.on_incoming_call(call, question.result, result)
