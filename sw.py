@@ -29,8 +29,6 @@ class CustomConsumer(Consumer):
 
                         question = await call.prompt_tts(prompt_type='speech', text=answer, speech_language='en-US')
 
-                        log.info(f'\n\nquestion: {question.result} \n\n')
-
                         await self.on_incoming_call(call, question.result, result)
                 else:
                     log.info('\n--- Continue Call ---')
@@ -38,9 +36,8 @@ class CustomConsumer(Consumer):
                     from_phone = result.event.payload.get('device').get('params').get('from_number')
 
                     history = Call.get_by_session_id(call_id)
-                    log.info(f'\nI reach here history: {history}')
                     answer = qa_chain(question, history)
-                    log.info(f'\nI reach here answer: {answer}')
+                    
                     Call.create(from_phone=from_phone, session_id=call_id, question=question, answer=answer)
 
                     log.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
