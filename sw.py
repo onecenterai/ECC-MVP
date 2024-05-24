@@ -7,6 +7,9 @@ from app import app
 from logger import sw_logger
 import traceback
 
+import whisper
+model = whisper.load_model("base")
+
 class CustomConsumer(Consumer):
     def setup(self):
         self.project = os.getenv('SW_PROJECT_ID')
@@ -28,9 +31,14 @@ class CustomConsumer(Consumer):
 
                         sw_logger.info(f'\nfrom phone: {from_phone} \nquestion: {question} \nanswer: {answer}\n')
 
-                        question = await call.prompt_tts(prompt_type='speech', text=answer, speech_language='en-US')
+                        question_audio = await call.prompt_tts(prompt_type='speech', text=answer, speech_language='en-US')
+                        audio_file_path = "./question.wav"
+                        with open(audio_file_path, "wb") as audio_file:
+                            audio_file.write(question_audio.audio)
+                        
+                        transcribed_question = self.transcribe_with_whisper(audio_file_path)
 
-                        await self.on_incoming_call(call, question.result, result)
+                        await self.on_incoming_call(call, transcribed_question, result)
                 else:
                     sw_logger.info('\n--- Continue Call ---')
                     call_id = result.event.payload.get('call_id')
@@ -48,13 +56,23 @@ class CustomConsumer(Consumer):
 
                     sw_logger.info(f'\nanswer: {answer}\n')
                     
-                    question = await call.prompt_tts(prompt_type='speech', text=answer)
-                    await self.on_incoming_call(call, question.result, result)
+                    question_audio = await call.prompt_tts(prompt_type='speech', text=answer, speech_language='en-US')
+                    audio_file_path = "./question.wav"
+                    with open(audio_file_path, "wb") as audio_file:
+                        audio_file.write(question_audio.audio)
+                    
+                    transcribed_question = self.transcribe_with_whisper(audio_file_path)
+
+                    await self.on_incoming_call(call, transcribed_question, result)
+            
         except Exception as e:
             sw_logger.error('Error Making Calls: %s', str(e))
             sw_logger.error(traceback.format_exc())
             pass
-
+    
+    def transcribe_with_whisper(self, audio_file_path):
+        result = model.transcribe(audio_file_path)
+        return result['text']
 # Run your consumer..
 consumer = CustomConsumer()
 consumer.run()
