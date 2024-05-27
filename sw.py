@@ -7,8 +7,8 @@ from app import app
 from logger import sw_logger
 import traceback
 
-import whisper
-model = whisper.load_model("base")
+# import whisper
+# model = whisper.load_model("base")
 
 class CustomConsumer(Consumer):
     def setup(self):
@@ -61,18 +61,18 @@ class CustomConsumer(Consumer):
                     with open(audio_file_path, "wb") as audio_file:
                         audio_file.write(question_audio.audio)
                     
-                    transcribed_question = self.transcribe_with_whisper(audio_file_path)
+                    #transcribed_question = self.transcribe_with_whisper(audio_file_path)
 
-                    await self.on_incoming_call(call, transcribed_question, result)
+                    await self.on_incoming_call(call, question_audio.result, result)
             
         except Exception as e:
             sw_logger.error('Error Making Calls: %s', str(e))
             sw_logger.error(traceback.format_exc())
             pass
     
-    def transcribe_with_whisper(self, audio_file_path):
-        result = model.transcribe(audio_file_path)
-        return result['text']
+    # def transcribe_with_whisper(self, audio_file_path):
+    #     result = model.transcribe(audio_file_path)
+    #     return result['text']
 # Run your consumer..
 consumer = CustomConsumer()
 consumer.run()
