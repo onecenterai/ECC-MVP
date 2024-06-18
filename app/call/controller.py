@@ -5,6 +5,7 @@ from app.call.model import Call
 
 from helpers.langchain import qa_chain
 
+from logger import socket_logger
 #from twilio.twiml.voice_response import VoiceResponse
 
 bp = Blueprint('call', __name__, template_folder='templates')
@@ -44,3 +45,32 @@ def respond_to_call_in_progress():
 #@platform_auth_required
 def get_call_status():
     return ""
+
+from twilio.twiml.voice_response import VoiceResponse, Gather
+
+@bp.post('/call/twilio/callback')
+def ivr():
+    try:
+        response = VoiceResponse()
+
+        gather = Gather(input='speech', action='call//handle_speech')
+        gather.say('ECC, What is your Emergency?')
+        response.append(gather)
+
+        response.redirect('/call/twilio/callback')
+
+        return str(response)
+    except Exception as e:
+         raise e
+
+@bp.post("call/twilio/handle-speech")
+def handle_speech():
+    response = VoiceResponse()
+    speech_result = request.values.get('SpeechResult').lower()
+    
+    print(vars(request.values))
+
+    response.say('Nigga !!')
+
+    return str(response)
+     

@@ -7,6 +7,8 @@ from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 from config.db import Base
+from flask_socketio import SocketIO, emit
+
 
 load_dotenv()
 
@@ -16,6 +18,7 @@ app.config.from_object('config')
 app.config.setdefault('SQLALCHEMY_DATABASE_URI', os.getenv('DATABASE_URI'))
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
+socketio = SocketIO(app)
 CORS(app)
 
 # print('checking metadata ...')

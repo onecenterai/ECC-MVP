@@ -39,6 +39,22 @@ qa_err_handler.setFormatter(formatter)
 qa_logger.addHandler(qa_log_handler)
 qa_logger.addHandler(qa_err_handler)
 
+socket_logger = logging.getLogger('socket_logger')
+socket_logger.setLevel(logging.DEBUG)
+
+socket_log_handler = logging.FileHandler('socket_log.log')
+socket_log_handler.setLevel(logging.INFO)
+
+socket_err_handler = logging.FileHandler('socket_err.log')
+socket_err_handler.setLevel(logging.ERROR)
+
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+socket_log_handler.setFormatter(formatter)
+socket_err_handler.setFormatter(formatter)
+
+socket_logger.addHandler(socket_log_handler)
+socket_logger.addHandler(socket_err_handler)
+
 class StreamToLogger:
     """
     Redirects writes to a stream to a logger instance.
