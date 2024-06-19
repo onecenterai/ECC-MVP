@@ -8,10 +8,10 @@ from io import StringIO
 sw_logger = logging.getLogger('sw_logger')
 sw_logger.setLevel(logging.DEBUG)
 
-sw_info_handler = logging.FileHandler('./sw_log.log')
+sw_info_handler = logging.FileHandler('./logs/sw_log.log')
 sw_info_handler.setLevel(logging.INFO)
 
-sw_err_handler = logging.FileHandler('./sw_err.log')
+sw_err_handler = logging.FileHandler('./logs/sw_err.log')
 sw_err_handler.setLevel(logging.ERROR)
 
 sw_info_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -26,10 +26,10 @@ sw_logger.addHandler(sw_err_handler)
 qa_logger = logging.getLogger('qa_logger')
 qa_logger.setLevel(logging.DEBUG)
 
-qa_log_handler = logging.FileHandler('qa_log.log')
+qa_log_handler = logging.FileHandler('./logs/qa_log.log')
 qa_log_handler.setLevel(logging.INFO)
 
-qa_err_handler = logging.FileHandler('qa_err.log')
+qa_err_handler = logging.FileHandler('./logs/qa_err.log')
 qa_err_handler.setLevel(logging.ERROR)
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -42,10 +42,10 @@ qa_logger.addHandler(qa_err_handler)
 socket_logger = logging.getLogger('socket_logger')
 socket_logger.setLevel(logging.DEBUG)
 
-socket_log_handler = logging.FileHandler('socket_log.log')
+socket_log_handler = logging.FileHandler('./logs/socket_log.log')
 socket_log_handler.setLevel(logging.INFO)
 
-socket_err_handler = logging.FileHandler('socket_err.log')
+socket_err_handler = logging.FileHandler('./logs/socket_err.log')
 socket_err_handler.setLevel(logging.ERROR)
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

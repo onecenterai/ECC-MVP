@@ -19,10 +19,10 @@ class SendEmergencyNotification(BaseTool):
                                    'Police':'jesuobohgift@gmail.com'}
 
         target_emails = [emergency_email_mapping.get(service) for service in kwargs.get('agency-names')]
-        print(1)
         target_emails = send_notification.Email(email=target_emails)
-
-        res = send_notification.send_mail(target_emails)
+        location = kwargs.get('location')
+        emergency_name = kwargs.get('emergency-name')
+        res = send_notification.send_mail(target_emails, location, emergency_name)
 
         return res
 

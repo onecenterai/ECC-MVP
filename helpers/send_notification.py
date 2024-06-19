@@ -14,9 +14,9 @@ class Email(BaseModel):
     email: List[EmailStr]
 
 
-def send_mail(email: Email):
+def send_mail(email: Email, location: str, emergency_name:str):
     try:
-        template='ECC MVP Test'
+        template=f'{emergency_name} at {location}'
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         server.login(os.getenv('MAIL_USERNAME'), os.getenv('MAIL_PASSWORD'))
 

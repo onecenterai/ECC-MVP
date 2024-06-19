@@ -1,12 +1,11 @@
 from flask import Blueprint, request
-#from app.route_guard import platform_auth_required
 
 from app.call.model import Call
 
 from helpers.langchain import qa_chain
 
-from logger import socket_logger
-#from twilio.twiml.voice_response import VoiceResponse
+from twilio.twiml.voice_response import VoiceResponse, Gather, Start, Stream
+
 
 bp = Blueprint('call', __name__, template_folder='templates')
 
@@ -32,45 +31,110 @@ def respond_to_call_in_progress():
     history = Call.get_by_session_id(session_id)
     answer = qa_chain(question, history)
     
-    # res, success = query(partner.corpus_id, question)
-    # if success and (not 'returned results did not contain sufficient information to be summarized into a useful answer for your query' in res.json().get('responseSet')[0].get('summary')[0].get('text')):
-    #     answer = qa(question, res.json().get('responseSet')[0].get('summary')[0].get('text'))
-    # else:
-    #     answer = "Sorry, I don't have answer for that at the moment."
-
     Call.create(session_id=session_id, question=question, answer=answer)
     return answer
 
-@bp.post('/call/status')
-#@platform_auth_required
-def get_call_status():
-    return ""
 
-from twilio.twiml.voice_response import VoiceResponse, Gather
+
+
+# @bp.post('/call/twilio/callback')
+# def ivr():
+#     try:
+#         response = VoiceResponse()
+
+#         data = request.values
+#         Call.create(from_phone=data.get('Caller'), session_id=data.get('CallSid'), question='Hello', answer='ECC, What is your Emergency?')
+
+#         gather = Gather(input='speech', action='/call/twilio/handle-speech')    
+#         gather.say('ECC, What is your Emergency?')
+#         response.append(gather)
+
+#         response.redirect('/call/twilio/callback')
+
+#         return str(response)
+    
+#     except Exception as e:
+#          raise e
+
+@bp.post("/call/twilio/handle-speech")
+def handle_speech():
+    try:
+        response = VoiceResponse()
+        data = request.values
+        question = data.get('SpeechResult').lower()
+        from_phone = data.get('Caller')
+        sid = data.get('CallSid')
+
+        history = Call.get_by_session_id(sid)
+        answer = qa_chain(question=question, history=history)
+        Call.create(from_phone=from_phone, session_id=sid, question=question, answer=answer)
+        
+        gather = Gather(input='speech', action='/call/twilio/handle-speech')    
+        gather.say(answer)
+        response.append(gather)
+
+        #response.redirect('/call/twilio/callback')
+
+        response.say('Nigga !!')
+        return str(response)
+        
+    except Exception as e:
+        # If error occur forward the call
+        print(e)
+        response.say('Nigga !!')
+        return str(response)
+     
+
+from app import sock
+import audioop, json, base64, wave
+
 
 @bp.post('/call/twilio/callback')
 def ivr():
     try:
         response = VoiceResponse()
 
-        gather = Gather(input='speech', action='call//handle_speech')
-        gather.say('ECC, What is your Emergency?')
-        response.append(gather)
+        data = request.values
+        Call.create(from_phone=data.get('Caller'), session_id=data.get('CallSid'), question='Hello', answer='ECC, What is your Emergency?')
 
-        response.redirect('/call/twilio/callback')
+        start = Start()
+        start.stream(url=f'wss://{request.host}/stream')
+        response.append(start)
+        response.say('ECC What is your emergency')
+        response.pause(length=10)
 
-        return str(response)
+
+        return str(response), 200, {'Content-Type': 'text/xml'}
+    
     except Exception as e:
          raise e
 
-@bp.post("call/twilio/handle-speech")
-def handle_speech():
-    response = VoiceResponse()
-    speech_result = request.values.get('SpeechResult').lower()
-    
-    print(vars(request.values))
+def save_audio_to_file(audio_data, filename="/audio-files/output.wav"):
 
-    response.say('Nigga !!')
+    with wave.open(filename, 'wb') as wf:
+        wf.setnchannels(1)  # mono
+        wf.setsampwidth(2)  # 2 bytes per sample
+        wf.setframerate(16000)  # 16kHz sample rate
+        wf.writeframes(audio_data)
 
-    return str(response)
-     
+@sock.route('/stream')
+def stream(ws):
+    try:
+        audio_buffer = b''
+        
+        while True:
+            message = ws.receive()
+            packet = json.loads(message)
+            if packet['event'] == 'start':
+                print('Starting Stream')
+            elif packet['event'] == 'stop':
+                print('Stopping Stream')
+                save_audio_to_file(audio_buffer)
+                audio_buffer = b''
+            elif packet['event'] == 'media':
+                audio = base64.b64decode(packet['media']['payload'])
+                audio = audioop.ulaw2lin(audio, 2)
+                audio = audioop.ratecv(audio, 2, 1, 8000, 16000, None)[0]
+                audio_buffer += audio
+    except Exception as e:
+        raise e
