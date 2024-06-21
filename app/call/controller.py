@@ -9,6 +9,13 @@ from twilio.twiml.voice_response import VoiceResponse, Gather, Start, Stream
 
 bp = Blueprint('call', __name__, template_folder='templates')
 
+
+#############################################################################################################################
+'''
+################################################ TESTING ENDPOINTS ON POSTMAN ###############################################
+'''
+#############################################################################################################################
+
 @bp.post('/call/initialize')
 #@platform_auth_required
 def make_intial_call_response():
@@ -36,25 +43,49 @@ def respond_to_call_in_progress():
 
 
 
+#############################################################################################################################
+'''
+############################### TWILIO (TRANSCRIPTION MODEL IS NOT GOOD) - FOR TESTING SOCKETS ##############################
+'''
+#############################################################################################################################
 
-# @bp.post('/call/twilio/callback')
-# def ivr():
-#     try:
-#         response = VoiceResponse()
+import asyncio
+import websockets
+import json
 
-#         data = request.values
-#         Call.create(from_phone=data.get('Caller'), session_id=data.get('CallSid'), question='Hello', answer='ECC, What is your Emergency?')
+async def send_conversation(data):
+    uri = 'ws://localhost:6789'
+    async with websockets.connect(uri) as websocket:
+        await websocket.send(json.dumps(data))
 
-#         gather = Gather(input='speech', action='/call/twilio/handle-speech')    
-#         gather.say('ECC, What is your Emergency?')
-#         response.append(gather)
+@bp.post('/call/twilio/callback')
+def ivr():
+    try:
+        response = VoiceResponse()
 
-#         response.redirect('/call/twilio/callback')
+        data = request.values
+        Call.create(from_phone=data.get('Caller'), session_id=data.get('CallSid'), question='Hello', answer='ECC, What is your Emergency?')
 
-#         return str(response)
+        payload = {
+            'question': 'Hello',
+            'answer': 'ECC, What is your Emergency?',
+            'from_phone': data.get('Caller'),
+            'sid': data.get('CallSid')
+        }
+
+        asyncio.run(send_conversation(payload))
+
+
+        gather = Gather(input='speech', action='/call/twilio/handle-speech')    
+        gather.say('ECC, What is your Emergency?')
+        response.append(gather)
+
+        response.redirect('/call/twilio/callback')
+
+        return str(response)
     
-#     except Exception as e:
-#          raise e
+    except Exception as e:
+         raise e
 
 @bp.post("/call/twilio/handle-speech")
 def handle_speech():
@@ -68,6 +99,15 @@ def handle_speech():
         history = Call.get_by_session_id(sid)
         answer = qa_chain(question=question, history=history)
         Call.create(from_phone=from_phone, session_id=sid, question=question, answer=answer)
+
+        payload = {
+            'question': question,
+            'answer': answer,
+            'from_phone': from_phone,
+            'sid': sid
+        }
+
+        asyncio.run(send_conversation(payload))
         
         gather = Gather(input='speech', action='/call/twilio/handle-speech')    
         gather.say(answer)
@@ -83,33 +123,45 @@ def handle_speech():
         print(e)
         response.say('Nigga !!')
         return str(response)
-     
+
+
+#############################################################################################################################
+'''
+####################################### THIS SECTION IS FOR STREAMING - STILL UNDER PROGRESS ################################
+'''
+#############################################################################################################################
 
 from app import sock
-import audioop, json, base64, wave
+import audioop, json, base64, wave, time, os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SILENCE_THRESHOLD = os.getenv('SILENCE_THRESHOLD')
+SILENCE_DURATION = os.getenv('SILENCE_DURATION')
 
 
-@bp.post('/call/twilio/callback')
-def ivr():
-    try:
-        response = VoiceResponse()
+# @bp.post('/call/twilio/callback')
+# def ivr():
+#     try:
+#         response = VoiceResponse()
 
-        data = request.values
-        Call.create(from_phone=data.get('Caller'), session_id=data.get('CallSid'), question='Hello', answer='ECC, What is your Emergency?')
+#         data = request.values
+#         Call.create(from_phone=data.get('Caller'), session_id=data.get('CallSid'), question='Hello', answer='ECC, What is your Emergency?')
 
-        start = Start()
-        start.stream(url=f'wss://{request.host}/stream')
-        response.append(start)
-        response.say('ECC What is your emergency')
-        response.pause(length=10)
+#         start = Start()
+#         start.stream(url=f'wss://{request.host}/stream')
+#         response.append(start)
+#         response.say('ECC What is your emergency')
+#         response.pause(length=10)
 
 
-        return str(response), 200, {'Content-Type': 'text/xml'}
+#         return str(response), 200, {'Content-Type': 'text/xml'}
     
-    except Exception as e:
-         raise e
+#     except Exception as e:
+#          raise e
 
-def save_audio_to_file(audio_data, filename="/audio-files/output.wav"):
+def save_audio_wf(audio_data, filename="./output-wf.wav"):
 
     with wave.open(filename, 'wb') as wf:
         wf.setnchannels(1)  # mono
@@ -129,12 +181,54 @@ def stream(ws):
                 print('Starting Stream')
             elif packet['event'] == 'stop':
                 print('Stopping Stream')
-                save_audio_to_file(audio_buffer)
+                save_audio_wf(audio_buffer)
                 audio_buffer = b''
             elif packet['event'] == 'media':
                 audio = base64.b64decode(packet['media']['payload'])
                 audio = audioop.ulaw2lin(audio, 2)
                 audio = audioop.ratecv(audio, 2, 1, 8000, 16000, None)[0]
                 audio_buffer += audio
+                
+                '''
+                    NOTE !!
+                    DETECT SILENCE AND SEND MESSAGE TO LLM MODEL
+                    STILL UNDER WORK SHA
+                '''
+                # # Append to the main audio buffer
+                # audio_buffer += audio
+                
+                # # Check for silence
+                # rms = audioop.rms(audio, 2)
+                # if rms < SILENCE_THRESHOLD:
+                #     if silence_start is None:
+                #         silence_start = time.time()
+                #     silence_buffer += audio
+                # else:
+                #     silence_start = None
+                #     silence_buffer = b''
+                
+                # if silence_start and (time.time() - silence_start) >= SILENCE_DURATION:
+                #     print('Silence Detected, stopping stream.')
+                #     save_audio_wf(audio_buffer)
+                #     audio_buffer = b''
+                #     break  # Exit the loop if silence is detected for a duration # Append to the main audio buffer
+                # audio_buffer += audio
+                
+                # # Check for silence
+                # rms = audioop.rms(audio, 2)
+                # if rms < SILENCE_THRESHOLD:
+                #     if silence_start is None:
+                #         silence_start = time.time()
+                #     silence_buffer += audio
+                # else:
+                #     silence_start = None
+                #     silence_buffer = b''
+                
+                # if silence_start and (time.time() - silence_start) >= SILENCE_DURATION:
+                #     print('Silence Detected, stopping stream.')
+                #     save_audio_wf(audio_buffer)
+                #     audio_buffer = b''
+                #     break  # Exit the loop if silence is detected for a duration
+
     except Exception as e:
         raise e

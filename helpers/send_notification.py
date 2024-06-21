@@ -14,13 +14,14 @@ class Email(BaseModel):
     email: List[EmailStr]
 
 
-def send_mail(email: Email, location: str, emergency_name:str):
+def send_mail(email: Email, location: str, emergency_name:str, agencies):
     try:
-        template=f'{emergency_name} at {location}'
+        
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         server.login(os.getenv('MAIL_USERNAME'), os.getenv('MAIL_PASSWORD'))
 
-        for em in email.model_dump().get('email'):
+        for i, em in enumerate(email.model_dump().get('email')):
+            template=f'{emergency_name} at {location} need {agencies[i]}'
             msg = MIMEMultipart()
             msg['From'] = os.getenv('MAIL_USERNAME')
             msg['To'] = em
