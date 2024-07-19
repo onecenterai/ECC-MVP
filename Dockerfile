@@ -24,9 +24,6 @@ ENV OPENAI_API_KEY=${OPENAI_API_KEY}
 
 RUN flask db upgrade
 
-# RUN python manage.py
-
-
 EXPOSE 80
 
 CMD bash -c "supervisord -c supervisord.conf"

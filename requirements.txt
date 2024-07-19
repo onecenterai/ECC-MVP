@@ -83,6 +83,7 @@ typing-inspect==0.9.0
 typing_extensions==4.11.0
 urllib3==2.2.1
 uvicorn==0.29.0
+websocket==12.0
 Werkzeug==2.2.3
 wsproto==1.2.0
 yarl==1.9.4
