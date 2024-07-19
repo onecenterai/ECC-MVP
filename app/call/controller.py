@@ -50,11 +50,19 @@ def respond_to_call_in_progress():
 import asyncio
 import websockets
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 async def send_conversation(data):
-    uri = 'ws://localhost:6789'
+    uri = os.getenv('WS_URL')
+    identifier = data.get('sid')
     async with websockets.connect(uri) as websocket:
+        await websocket.send(identifier)
         await websocket.send(json.dumps(data))
+        response = await websocket.recv()
+        print(f"Received from ws server: {response}")
 
 @bp.post('/call/twilio/callback')
 def ivr():
@@ -72,6 +80,8 @@ def ivr():
         }
 
         asyncio.run(send_conversation(payload))
+
+        print('payload sent')
 
 
         gather = Gather(input='speech', action='/call/twilio/handle-speech')    
@@ -117,7 +127,7 @@ def handle_speech():
         return str(response)
         
     except Exception as e:
-        # If error occur forward the call
+        # TODO: If error occur forward the call
         print(e)
         response.say('Nigga !!')
         return str(response)
