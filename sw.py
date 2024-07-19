@@ -1,5 +1,5 @@
 import asyncio
-from signalwire.relay.consumer import Consumer
+#from signalwire.relay.consumer import Consumer
 import os
 from app.call.model import Call
 from helpers.langchain import qa_chain
@@ -15,7 +15,7 @@ import socketio
 sio = socketio.Client()
 sio.connect('http://localhost:3000')
 
-class CustomConsumer(Consumer):
+class CustomConsumer(): #(Consumer):
     def setup(self):
         self.project = os.getenv('SW_PROJECT_ID')
         self.token = os.getenv("SW_TOKEN")
