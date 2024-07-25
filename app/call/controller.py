@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 
 from app.call.model import Call
 from helpers.langchain import qa_chain
@@ -116,6 +116,9 @@ def handle_speech():
         }
 
         asyncio.run(send_conversation(payload))
+
+        if 'forward_call' in answer:
+            forward_call(answer)
         
         gather = Gather(input='speech', action='/call/twilio/handle-speech')    
         gather.say(answer)
@@ -132,6 +135,13 @@ def handle_speech():
         response.say('Nigga !!')
         return str(response)
 
+
+
+def forward_call(answer):
+    response = VoiceResponse()
+    response.say(answer)
+    response.dial(os.getenv('FORWARD_CALL_NUMBER'))
+    return Response(str(response), mimetype='application/xml')
 
 #############################################################################################################################
 '''

@@ -3,7 +3,7 @@ from langchain.agents import initialize_agent
 from langchain.agents.types import AgentType
 from langchain.schema import HumanMessage, AIMessage
 
-from helpers.model_tools import SendEmergencyNotification, ForwardCallToAgency
+from helpers.model_tools import SendEmergencyNotification
 from logger import qa_logger, capture_output
 import traceback
 
@@ -33,8 +33,7 @@ try:
             "RULE 3: when sending a notification, you will need to send the location the emergency has occured at, and the emergency that has happened \
                 for example: a bank robbery, or a fire accident, to get the location, and the emergency type, you'll need to ask the caller"
             
-            "To forward a call to an Agency, you would need to use the `forward_call_to_government_agency` tool. \
-                The input for this tool is going to be a dictionary with key `location` which would be the location of the caller."
+            "To forward a call to an Agency, you would simply need to respond with a string that has the keyword `forward_call`."
                     
             "To send a notification to an Agency, you would need to use the `send_gmail_message` tool. \
                 The input for this tool is going to be a dictionary with keys `location`, `emergency-name`, and `agency-names`, \
@@ -65,7 +64,6 @@ try:
 
     tools = [
         SendEmergencyNotification(),
-        ForwardCallToAgency()
     ]
 
     executor = initialize_agent(
