@@ -5,6 +5,9 @@ from helpers.langchain import qa_chain
 
 from twilio.twiml.voice_response import VoiceResponse, Gather, Start, Stream
 
+import asyncio, threading
+from .utils import send_conversation
+
 bp = Blueprint('call', __name__, template_folder='templates')
 
 
@@ -17,19 +20,25 @@ bp = Blueprint('call', __name__, template_folder='templates')
 @bp.post('/call/initialize')
 #@platform_auth_required
 def make_intial_call_response():
-        try:
-            session_id = request.json.get('sessionId')
-            answer = f"Hello, welcome to the Emergercy Hotline! How may I assist you today?"
-            Call.create(session_id=session_id, question="Hello", answer=answer)
-            return answer
-        except Exception as e:
-             raise e
+    session_id = request.json.get('sessionId')
+    answer = f"Hello, welcome to the Emergercy Hotline! How may I assist you today?"
+    Call.create(session_id=session_id, question="Hello", answer=answer)
+
+    payload = {
+        'question': 'Hello',
+        'answer': 'ECC, What is your Emergency?',
+        'from_phone': '+2349067887538',
+        'sid': session_id
+    }
+
+    threading.Thread(target=asyncio.run, args=(send_conversation(payload),)).start()
+    print('payload sent')
+
+    return answer
+
 
 @bp.post('/call/inprogress')
-#@platform_auth_required
 def respond_to_call_in_progress():
-    answer = "Sorry, could you repeat that please?"  
-    # do radysis logic here
     session_id = request.json.get('sessionId')
     question = request.json.get('text')
     
@@ -37,6 +46,17 @@ def respond_to_call_in_progress():
     answer = qa_chain(question, history)
     
     Call.create(session_id=session_id, question=question, answer=answer)
+
+    payload = {
+                'question': question,
+                'answer': answer,
+                'from_phone': '+2349067887538',
+                'sid': session_id
+            }
+
+    threading.Thread(target=asyncio.run, args=(send_conversation(payload),)).start()
+    print('payload sent')
+    
     return answer
 
 
@@ -46,23 +66,6 @@ def respond_to_call_in_progress():
 ############################### TWILIO (TRANSCRIPTION MODEL IS NOT GOOD) - FOR TESTING SOCKETS ##############################
 '''
 #############################################################################################################################
-
-import asyncio
-import websockets
-import json
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-async def send_conversation(data):
-    uri = os.getenv('WS_URL')
-    identifier = data.get('sid')
-    async with websockets.connect(uri) as websocket:
-        await websocket.send(identifier)
-        await websocket.send(json.dumps(data))
-        response = await websocket.recv()
-        print(f"Received from ws server: {response}")
 
 @bp.post('/call/twilio/callback')
 def ivr():
@@ -79,8 +82,7 @@ def ivr():
             'sid': data.get('CallSid')
         }
 
-        asyncio.run(send_conversation(payload))
-
+        threading.Thread(target=asyncio.run, args=(send_conversation(payload),)).start()
         print('payload sent')
 
 
@@ -115,7 +117,7 @@ def handle_speech():
             'sid': sid
         }
 
-        asyncio.run(send_conversation(payload))
+        threading.Thread(target=asyncio.run, args=(send_conversation(payload),)).start()
 
         if 'forward_call' in answer:
             forward_call(answer)
