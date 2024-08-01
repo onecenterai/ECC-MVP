@@ -52,8 +52,11 @@ import websockets
 import json
 import os
 from dotenv import load_dotenv
+import whisper
 
 load_dotenv()
+
+model = whisper.load_model('base')
 
 async def send_conversation(data):
     uri = os.getenv('WS_URL')
