@@ -67,35 +67,34 @@ def respond_to_call_in_progress():
 '''
 #############################################################################################################################
 
-@bp.post('/call/twilio/callback')
-def ivr():
-    try:
-        response = VoiceResponse()
+# @bp.post('/call/twilio/callback')
+# def ivr():
+#     try:
+#         response = VoiceResponse()
 
-        data = request.values
-        Call.create(from_phone=data.get('Caller'), session_id=data.get('CallSid'), question='Hello', answer='ECC, What is your Emergency?')
+#         data = request.values
+#         Call.create(from_phone=data.get('Caller'), session_id=data.get('CallSid'), question='Hello', answer='ECC, What is your Emergency?')
 
-        payload = {
-            'question': 'Hello',
-            'answer': 'ECC, What is your Emergency?',
-            'from_phone': data.get('Caller'),
-            'sid': data.get('CallSid')
-        }
+#         payload = {
+#             'question': 'Hello',
+#             'answer': 'ECC, What is your Emergency?',
+#             'from_phone': data.get('Caller'),
+#             'sid': data.get('CallSid')
+#         }
 
-        threading.Thread(target=asyncio.run, args=(send_conversation(payload),)).start()
-        print('payload sent')
+#         threading.Thread(target=asyncio.run, args=(send_conversation(payload),)).start()
+#         print('payload sent')
 
+#         gather = Gather(input='speech', action='/call/twilio/handle-speech')    
+#         gather.say('ECC, What is your Emergency?')
+#         response.append(gather)
 
-        gather = Gather(input='speech', action='/call/twilio/handle-speech')    
-        gather.say('ECC, What is your Emergency?')
-        response.append(gather)
+#         response.redirect('/call/twilio/callback')
 
-        response.redirect('/call/twilio/callback')
-
-        return str(response)
+#         return str(response)
     
-    except Exception as e:
-         raise e
+#     except Exception as e:
+#         raise e
 
 @bp.post("/call/twilio/handle-speech")
 def handle_speech():
@@ -152,42 +151,34 @@ def forward_call(answer):
 #############################################################################################################################
 
 from app import sock
-import audioop, json, base64, wave, time, os
+import audioop, json, base64, time, os
 from dotenv import load_dotenv
+from .utils import save_audio_wf
 
 load_dotenv()
 
 SILENCE_THRESHOLD = os.getenv('SILENCE_THRESHOLD')
 SILENCE_DURATION = os.getenv('SILENCE_DURATION')
 
+@bp.post('/call/twilio/callback')
+def ivr():
+    try:
+        response = VoiceResponse()
 
-# @bp.post('/call/twilio/callback')
-# def ivr():
-#     try:
-#         response = VoiceResponse()
+        data = request.values
+        Call.create(from_phone=data.get('Caller'), session_id=data.get('CallSid'), question='Hello', answer='ECC, What is your Emergency?')
 
-#         data = request.values
-#         Call.create(from_phone=data.get('Caller'), session_id=data.get('CallSid'), question='Hello', answer='ECC, What is your Emergency?')
-
-#         start = Start()
-#         start.stream(url=f'wss://{request.host}/stream')
-#         response.append(start)
-#         response.say('ECC What is your emergency')
-#         response.pause(length=10)
+        start = Start()
+        start.stream(url=f'wss://{request.host}/stream')
+        response.append(start)
+        response.say('ECC What is your emergency')
+        response.pause(length=10)
 
 
-#         return str(response), 200, {'Content-Type': 'text/xml'}
+        return str(response), 200, {'Content-Type': 'text/xml'}
     
-#     except Exception as e:
-#          raise e
-
-def save_audio_wf(audio_data, filename="./output-wf.wav"):
-
-    with wave.open(filename, 'wb') as wf:
-        wf.setnchannels(1)  # mono
-        wf.setsampwidth(2)  # 2 bytes per sample
-        wf.setframerate(16000)  # 16kHz sample rate
-        wf.writeframes(audio_data)
+    except Exception as e:
+         raise e
 
 @sock.route('/stream')
 def stream(ws):
