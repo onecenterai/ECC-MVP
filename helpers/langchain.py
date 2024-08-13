@@ -80,7 +80,7 @@ except Exception as e:
     qa_logger.error(traceback.format_exc())
     raise
 
-def qa_chain(question, history=[]):
+async def qa_chain(question, history=[]):
     try:
         q = {"question": question}
 

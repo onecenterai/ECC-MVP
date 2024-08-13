@@ -1,6 +1,6 @@
 from datetime import datetime
 from app import app
-from app.user.model import User
+
 
 with app.app_context():
     pass
