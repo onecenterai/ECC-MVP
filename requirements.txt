@@ -37,6 +37,7 @@ Flask-SQLAlchemy==3.0.3
 frozenlist==1.4.1
 fsspec==2024.6.1
 greenlet==3.0.3
+gunicorn==23.0.0
 h11==0.14.0
 huggingface-hub==0.24.5
 idna==3.7
