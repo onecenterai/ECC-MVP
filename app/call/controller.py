@@ -125,12 +125,14 @@ def ivr():
             'payload':payload,
             'ws_res':ws_res
         }
-
-        gather = Gather(input='speech', action='/call/twilio/handle-speech')
+        
+        gather = Gather(input='speech', action='/call/twilio/handle-speech', enhanced=True, speech_model="phone_call")
         gather.say('ECC, What is your Emergency?')
         response.append(gather)
+        
+        print('I reach here')
 
-        #response.redirect('/call/twilio/callback')
+        response.redirect('/call/twilio/callback')
 
         return str(response)
     
@@ -175,11 +177,11 @@ def handle_speech():
         if 'forward_call' in answer:
             forward_call(answer)
         
-        gather = Gather(input='speech', action='/call/twilio/handle-speech')    
+        gather = Gather(input='speech', enhanced=True, speech_model="phone_call")
         gather.say(answer)
         response.append(gather)
 
-        #response.redirect('/call/twilio/callback')
+        response.redirect('/call/twilio/handle-speech')
 
         response.say('Call Ended')
         return str(response)
