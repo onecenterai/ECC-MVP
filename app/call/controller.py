@@ -1,11 +1,31 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 
 from app.call.model import Call
 from helpers.langchain import qa_chain
+from helpers.sentiment_analyser import severity_inference_pipeline
 
 from twilio.twiml.voice_response import VoiceResponse, Gather, Start, Stream
 
+import asyncio, threading
+from .utils import send_conversation, save_audio_wf, send_conversation_webhook
+
+from app import sock
+import audioop, json, base64, time, os
+from dotenv import load_dotenv
+import whisper
+import numpy as np
+import torch
+
+load_dotenv()
+
 bp = Blueprint('call', __name__, template_folder='templates')
+
+#whisper_model = whisper.load_model('base')
+SILENCE_THRESHOLD = os.getenv('SILENCE_THRESHOLD')
+SILENCE_DURATION = os.getenv('SILENCE_DURATION')
+
+CL = '\x1b[0K'
+BS = '\x08'
 
 
 #############################################################################################################################
@@ -17,27 +37,62 @@ bp = Blueprint('call', __name__, template_folder='templates')
 @bp.post('/call/initialize')
 #@platform_auth_required
 def make_intial_call_response():
-        try:
-            session_id = request.json.get('sessionId')
-            answer = f"Hello, welcome to the Emergercy Hotline! How may I assist you today?"
-            Call.create(session_id=session_id, question="Hello", answer=answer)
-            return answer
-        except Exception as e:
-             raise e
+    session_id = request.json.get('sessionId')
+    answer = f"Hello, welcome to the Emergercy Hotline! How may I assist you today?"
+    Call.create(session_id=session_id, question="Hello", answer=answer)
+
+    payload = {
+        'question': 'Hello',
+        'answer': 'ECC, What is your Emergency?',
+        'from_phone': '+2349067887538',
+        'sid': session_id,
+        'severity_level': 1
+    }
+
+    ws_res = send_conversation_webhook(payload)
+    res = {
+        'payload':payload,
+        'ws_res':ws_res
+    }
+    
+    return res
+
 
 @bp.post('/call/inprogress')
-#@platform_auth_required
 def respond_to_call_in_progress():
-    answer = "Sorry, could you repeat that please?"  
-    # do radysis logic here
+    
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     session_id = request.json.get('sessionId')
     question = request.json.get('text')
     
     history = Call.get_by_session_id(session_id)
-    answer = qa_chain(question, history)
+    
+    results = loop.run_until_complete(asyncio.gather(
+      qa_chain(question, history),
+      severity_inference_pipeline(question)
+    ))
+
+    answer, severity_level = results
     
     Call.create(session_id=session_id, question=question, answer=answer)
-    return answer
+
+    payload = {
+                'question': question,
+                'answer': answer,
+                'from_phone': '+2349067887538',
+                'sid': session_id,
+                'severity_level': severity_level
+            }
+
+    ws_res = send_conversation_webhook(payload)
+    res = {
+        'payload':payload,
+        'ws_res':ws_res
+    }
+    
+    return res
 
 
 
@@ -47,56 +102,40 @@ def respond_to_call_in_progress():
 '''
 #############################################################################################################################
 
-import asyncio
-import websockets
-import json
-import os
-from dotenv import load_dotenv
-import whisper
-
-load_dotenv()
-
-model = whisper.load_model('base')
-
-async def send_conversation(data):
-    uri = os.getenv('WS_URL')
-    identifier = data.get('sid')
-    async with websockets.connect(uri) as websocket:
-        await websocket.send(identifier)
-        await websocket.send(json.dumps(data))
-        response = await websocket.recv()
-        print(f"Received from ws server: {response}")
-
 @bp.post('/call/twilio/callback')
 def ivr():
     try:
+
         response = VoiceResponse()
 
         data = request.values
+        
         Call.create(from_phone=data.get('Caller'), session_id=data.get('CallSid'), question='Hello', answer='ECC, What is your Emergency?')
 
         payload = {
             'question': 'Hello',
             'answer': 'ECC, What is your Emergency?',
             'from_phone': data.get('Caller'),
-            'sid': data.get('CallSid')
+            'sid': data.get('CallSid'),
+            'severity_level': 1
         }
 
-        asyncio.run(send_conversation(payload))
-
-        print('payload sent')
-
-
-        gather = Gather(input='speech', action='/call/twilio/handle-speech')    
+        ws_res = send_conversation_webhook(payload)
+        res = {
+            'payload':payload,
+            'ws_res':ws_res
+        }
+        
+        gather = Gather(input='speech', action='/call/twilio/handle-speech', enhanced=True, speech_model="phone_call")
         gather.say('ECC, What is your Emergency?')
         response.append(gather)
-
-        response.redirect('/call/twilio/callback')
+        
+        response.redirect('/call/twilio/handle-speech')
 
         return str(response)
     
     except Exception as e:
-         raise e
+        raise e
 
 @bp.post("/call/twilio/handle-speech")
 def handle_speech():
@@ -108,49 +147,60 @@ def handle_speech():
         sid = data.get('CallSid')
 
         history = Call.get_by_session_id(sid)
-        answer = qa_chain(question=question, history=history)
-        Call.create(from_phone=from_phone, session_id=sid, question=question, answer=answer)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        results = loop.run_until_complete(asyncio.gather(
+            qa_chain(question, history),
+            severity_inference_pipeline(question)
+        ))
+
+        answer, severity_level = results
+        
+        Call.create(session_id=sid, question=question, answer=answer)
 
         payload = {
-            'question': question,
-            'answer': answer,
-            'from_phone': from_phone,
-            'sid': sid
+                    'question': question,
+                    'answer': answer,
+                    'from_phone': from_phone,
+                    'sid': sid,
+                    'severity_level': severity_level
+                }
+
+        ws_res = send_conversation_webhook(payload)
+        res = {
+            'payload':payload,
+            'ws_res':ws_res
         }
 
-        asyncio.run(send_conversation(payload))
+        if 'forward_call' in answer:
+            forward_call(answer)
         
-        gather = Gather(input='speech', action='/call/twilio/handle-speech')    
+        gather = Gather(input='speech', enhanced=True, speech_model="phone_call")
         gather.say(answer)
         response.append(gather)
 
-        #response.redirect('/call/twilio/callback')
+        response.redirect('/call/twilio/handle-speech')
 
-        response.say('Nigga !!')
+        response.say('Call Ended')
         return str(response)
         
     except Exception as e:
         # TODO: If error occur forward the call
         print(e)
-        response.say('Nigga !!')
+        response.say('An error occured')
         return str(response)
 
+def forward_call(answer):
+    response = VoiceResponse()
+    response.say(answer)
+    response.dial(os.getenv('FORWARD_CALL_NUMBER'))
+    return Response(str(response), mimetype='application/xml')
 
 #############################################################################################################################
 '''
 ####################################### THIS SECTION IS FOR STREAMING - STILL UNDER PROGRESS ################################
 '''
 #############################################################################################################################
-
-from app import sock
-import audioop, json, base64, wave, time, os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-SILENCE_THRESHOLD = os.getenv('SILENCE_THRESHOLD')
-SILENCE_DURATION = os.getenv('SILENCE_DURATION')
-
 
 # @bp.post('/call/twilio/callback')
 # def ivr():
@@ -172,74 +222,101 @@ SILENCE_DURATION = os.getenv('SILENCE_DURATION')
 #     except Exception as e:
 #          raise e
 
-def save_audio_wf(audio_data, filename="./output-wf.wav"):
-
-    with wave.open(filename, 'wb') as wf:
-        wf.setnchannels(1)  # mono
-        wf.setsampwidth(2)  # 2 bytes per sample
-        wf.setframerate(16000)  # 16kHz sample rate
-        wf.writeframes(audio_data)
-
-@sock.route('/stream')
-def stream(ws):
-    try:
-        audio_buffer = b''
+# @sock.route('/stream')
+# def stream(ws):
+#     global i
+#     global transcription0
+#     try:
+#         audio_buffer = b''
         
-        while True:
-            message = ws.receive()
-            packet = json.loads(message)
-            if packet['event'] == 'start':
-                print('Starting Stream')
-            elif packet['event'] == 'stop':
-                print('Stopping Stream')
-                save_audio_wf(audio_buffer)
-                audio_buffer = b''
-            elif packet['event'] == 'media':
-                audio = base64.b64decode(packet['media']['payload'])
-                audio = audioop.ulaw2lin(audio, 2)
-                audio = audioop.ratecv(audio, 2, 1, 8000, 16000, None)[0]
-                audio_buffer += audio
+#         while True:
+#             message = ws.receive()
+#             packet = json.loads(message)
+#             if packet['event'] == 'start':
+#                 print('Starting Stream')
+#             elif packet['event'] == 'stop':
+#                 print('Stopping Stream')
+#                 save_audio_wf(audio_buffer)
                 
-                '''
-                    NOTE !!
-                    DETECT SILENCE AND SEND MESSAGE TO LLM MODEL
-                    STILL UNDER WORK SHA
-                '''
-                # # Append to the main audio buffer
-                # audio_buffer += audio
-                
-                # # Check for silence
-                # rms = audioop.rms(audio, 2)
-                # if rms < SILENCE_THRESHOLD:
-                #     if silence_start is None:
-                #         silence_start = time.time()
-                #     silence_buffer += audio
-                # else:
-                #     silence_start = None
-                #     silence_buffer = b''
-                
-                # if silence_start and (time.time() - silence_start) >= SILENCE_DURATION:
-                #     print('Silence Detected, stopping stream.')
-                #     save_audio_wf(audio_buffer)
-                #     audio_buffer = b''
-                #     break  # Exit the loop if silence is detected for a duration # Append to the main audio buffer
-                # audio_buffer += audio
-                
-                # # Check for silence
-                # rms = audioop.rms(audio, 2)
-                # if rms < SILENCE_THRESHOLD:
-                #     if silence_start is None:
-                #         silence_start = time.time()
-                #     silence_buffer += audio
-                # else:
-                #     silence_start = None
-                #     silence_buffer = b''
-                
-                # if silence_start and (time.time() - silence_start) >= SILENCE_DURATION:
-                #     print('Silence Detected, stopping stream.')
-                #     save_audio_wf(audio_buffer)
-                #     audio_buffer = b''
-                #     break  # Exit the loop if silence is detected for a duration
+#                 # Convert in-ram buffer to something the model can use directly without needing a temp file.
+#                 # Convert data from 16 bit wide integers to floating point with a width of 32 bits.
+#                 # Clamp the audio stream frequency to a PCM wavelength compatible default of 32768hz max.
+#                 audio_np = np.frombuffer(audio_buffer, dtype=np.int64).astype(np.float32) / 32768.0
 
-    except Exception as e:
-        raise e
+#                 transcription = whisper_model.transcribe(audio_np, fp16=torch.cuda.is_available())
+#                 question = transcription['text'].strip()
+#                 print(f'\nWHISPER TRANSCRIPTION: {question}\n')
+#                 audio_buffer = b''
+#             elif packet['event'] == 'media':
+#                 i += 1
+#                 audio = base64.b64decode(packet['media']['payload'])
+#                 audio = audioop.ulaw2lin(audio, 2)
+#                 audio = audioop.ratecv(audio, 2, 1, 8000, 16000, None)[0]
+#                 audio_buffer += audio
+
+#                 if len(audio_buffer) > 299999:
+#                     audio_file = 'transcription'+str(i)+'.wav'
+#                     save_audio_wf(audio_data=audio_buffer, filename=audio_file)
+#                     audio_file = open(audio_file, 'rb')
+
+
+#                 # Convert in-ram buffer to something the model can use directly without needing a temp file.
+#                 # Convert data from 16 bit wide integers to floating point with a width of 32 bits.
+#                 # Clamp the audio stream frequency to a PCM wavelength compatible default of 32768hz max.
+#                 # audio_np = np.frombuffer(audio_buffer, dtype=np.int64).astype(np.float32) / 32768.0
+#                 try:
+#                     transcription = whisper_model.transcribe(audio_file)
+#                     if (transcription != transcription0):
+#                         print(transcription['text'] + ' ')
+#                         transcription0 = transcription
+#                     audio_file.close()
+#                 except:
+#                     print('An error occured while transcribing')
+#                     pass
+
+                
+#                 audio_buffer = b''
+                
+#                 '''
+#                     NOTE !!
+#                     DETECT SILENCE AND SEND MESSAGE TO LLM MODEL
+#                     STILL UNDER WORK SHA
+#                 '''
+#                 # # Append to the main audio buffer
+#                 # audio_buffer += audio
+                
+#                 # # Check for silence
+#                 # rms = audioop.rms(audio, 2)
+#                 # if rms < SILENCE_THRESHOLD:
+#                 #     if silence_start is None:
+#                 #         silence_start = time.time()
+#                 #     silence_buffer += audio
+#                 # else:
+#                 #     silence_start = None
+#                 #     silence_buffer = b''
+                
+#                 # if silence_start and (time.time() - silence_start) >= SILENCE_DURATION:
+#                 #     print('Silence Detected, stopping stream.')
+#                 #     save_audio_wf(audio_buffer)
+#                 #     audio_buffer = b''
+#                 #     break  # Exit the loop if silence is detected for a duration # Append to the main audio buffer
+#                 # audio_buffer += audio
+                
+#                 # # Check for silence
+#                 # rms = audioop.rms(audio, 2)
+#                 # if rms < SILENCE_THRESHOLD:
+#                 #     if silence_start is None:
+#                 #         silence_start = time.time()
+#                 #     silence_buffer += audio
+#                 # else:
+#                 #     silence_start = None
+#                 #     silence_buffer = b''
+
+#                 # if silence_start and (time.time() - silence_start) >= SILENCE_DURATION:
+#                 #     print('Silence Detected, stopping stream.')
+#                 #     save_audio_wf(audio_buffer)
+#                 #     audio_buffer = b''
+#                 #     break  # Exit the loop if silence is detected for a duration
+
+#     except Exception as e:
+#         raise e
