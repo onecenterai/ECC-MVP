@@ -130,9 +130,7 @@ def ivr():
         gather.say('ECC, What is your Emergency?')
         response.append(gather)
         
-        print('I reach here')
-
-        response.redirect('/call/twilio/callback')
+        response.redirect('/call/twilio/handle-speech')
 
         return str(response)
     
