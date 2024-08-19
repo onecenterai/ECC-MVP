@@ -75,7 +75,6 @@ nvidia-nccl-cu12==2.20.5
 nvidia-nvjitlink-cu12==12.6.20
 nvidia-nvtx-cu12==12.1.105
 openai==0.27.2
-openai-whisper @ git+https://github.com/openai/whisper.git@ba3f3cd54b0e5b8ce1ab3de13e32122d0d5f98ab
 packaging==24.1
 passlib==1.7.4
 prompt_toolkit==3.0.47

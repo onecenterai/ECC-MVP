@@ -160,9 +160,7 @@ cython_debug/
 #.idea/
 
 creds.json
-/ecc-env/
-/ecc-env-9/
-/ecc-env-11/
+/ecc-mvp/
 
 /models/
 models/
