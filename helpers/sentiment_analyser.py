@@ -9,7 +9,7 @@ config = AutoConfig.from_pretrained(MODEL)
 model = AutoModelForSequenceClassification.from_pretrained(MODEL)
 
 # tokenizer.save_pretrained('models/roberta/tokenizer/')
-# model.save_pretrained('models/roberta/', from_pt=True)
+# model.save_pretrained('models/roberta/model/', from_pt=True)
 # config.save_pretrained('models/roberta/config/')
 
 # MODEL = 'models/roberta/'
