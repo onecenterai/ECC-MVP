@@ -23,3 +23,6 @@ ECC Project
 - $ alembic upgrade head
 
 NOTE: We're not "init-ing" the `migrations` folder with alembic because it already exists
+
+#### Start Server
+- $ ./run
