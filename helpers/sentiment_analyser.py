@@ -3,19 +3,19 @@ from transformers import AutoTokenizer, AutoConfig
 from scipy.special import softmax
 
 
-# MODEL = f"cardiffnlp/twitter-roberta-base-sentiment-latest"
-# tokenizer = AutoTokenizer.from_pretrained(MODEL)
-# config = AutoConfig.from_pretrained(MODEL)
-# model = AutoModelForSequenceClassification.from_pretrained(MODEL)
+MODEL = f"cardiffnlp/twitter-roberta-base-sentiment-latest"
+tokenizer = AutoTokenizer.from_pretrained(MODEL)
+config = AutoConfig.from_pretrained(MODEL)
+model = AutoModelForSequenceClassification.from_pretrained(MODEL)
 
 # tokenizer.save_pretrained('models/roberta/tokenizer/')
 # model.save_pretrained('models/roberta/model/', from_pt=True)
 # config.save_pretrained('models/roberta/config/')
 
-MODEL = 'models/roberta/'
-tokenizer = AutoTokenizer.from_pretrained(MODEL+'tokenizer/')
-config = AutoConfig.from_pretrained(MODEL+'config/')
-model = AutoModelForSequenceClassification.from_pretrained(MODEL+'model/')
+# MODEL = 'models/roberta/'
+# tokenizer = AutoTokenizer.from_pretrained(MODEL+'tokenizer/')
+# config = AutoConfig.from_pretrained(MODEL+'config/')
+# model = AutoModelForSequenceClassification.from_pretrained(MODEL+'model/')
 
 def preprocess(text):
     new_text = []
