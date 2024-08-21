@@ -125,7 +125,7 @@ def ivr():
             'payload':payload,
             'ws_res':ws_res
         }
-        
+
         gather = Gather(input='speech', action='/call/twilio/handle-speech', enhanced=True, speech_model="phone_call")
         gather.say('ECC, What is your Emergency?')
         response.append(gather)
@@ -172,17 +172,19 @@ def handle_speech():
             'ws_res':ws_res
         }
 
-        if 'forward_call' in answer:
-            forward_call(answer)
-        
-        gather = Gather(input='speech', enhanced=True, speech_model="phone_call")
-        gather.say(answer)
-        response.append(gather)
+        if 'forward_call' in answer or 'human' in answer or 'agent' in answer:
+            response.say('Okay, I will forward your call to a human agent, please wait')
+            response.dial(os.getenv('FORWARD_CALL_NUMBER'))
+            return Response(str(response), 200, mimetype="application/xml")
+        else:
+            gather = Gather(input='speech', enhanced=True, speech_model="phone_call")
+            gather.say(answer)
+            response.append(gather)
 
-        response.redirect('/call/twilio/handle-speech')
+            response.redirect('/call/twilio/handle-speech')
 
-        response.say('Call Ended')
-        return str(response)
+            response.say('Call Ended')
+            return str(response)
         
     except Exception as e:
         # TODO: If error occur forward the call
@@ -190,11 +192,6 @@ def handle_speech():
         response.say('An error occured')
         return str(response)
 
-def forward_call(answer):
-    response = VoiceResponse()
-    response.say(answer)
-    response.dial(os.getenv('FORWARD_CALL_NUMBER'))
-    return Response(str(response), mimetype='application/xml')
 
 #############################################################################################################################
 '''
