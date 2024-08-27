@@ -16,6 +16,8 @@ import whisper
 import numpy as np
 import torch
 
+from logger import main_logger
+
 load_dotenv()
 
 bp = Blueprint('call', __name__, template_folder='templates')
@@ -126,6 +128,8 @@ def ivr():
             'ws_res':ws_res
         }
 
+        main_logger.info(str(res))
+
         gather = Gather(input='speech', 
                         action='/call/twilio/handle-speech', 
                         enhanced=True, 
@@ -140,6 +144,7 @@ def ivr():
         return str(response)
     
     except Exception as e:
+        main_logger.error(str(e))
         raise e
 
 @bp.post("/call/twilio/handle-speech")
@@ -178,6 +183,8 @@ def handle_speech():
             'ws_res':ws_res
         }
 
+        main_logger.info(str(res))
+
         if 'forward_call' in answer or 'human' in answer or 'agent' in answer:
             response.say('Okay, I will forward your call to a human agent, please wait')
             response.dial(os.getenv('FORWARD_CALL_NUMBER'))
@@ -199,7 +206,7 @@ def handle_speech():
         
     except Exception as e:
         # TODO: If error occur forward the call
-        print(e)
+        main_logger.error(str(e))
         response.say('An error occured')
         return str(response)
 
