@@ -15,7 +15,7 @@ class SendEmergencyNotification(BaseTool):
     name = 'send_emergency_notification'
     description = f'Useful when you need to send an emergency notification to a government agency.'
 
-    def _run(self, run_manager: Optional[CallbackManagerForToolRun]=None, *args, **kwargs) -> dict:
+    def _run(self, *args, run_manager: Optional[CallbackManagerForToolRun]=None, **kwargs) -> dict:
         emergency_email_mapping = {'Fire Service':os.getenv('FIRE_SERVICE_EMAIL'), 
                                    'Emergency Health Care Service':os.getenv('HEALTH_CARE_EMAIL'),
                                    'Police':os.getenv('POLICE_EMAIL')}

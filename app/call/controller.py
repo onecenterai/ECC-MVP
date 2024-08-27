@@ -126,7 +126,12 @@ def ivr():
             'ws_res':ws_res
         }
 
-        gather = Gather(input='speech', action='/call/twilio/handle-speech', enhanced=True, speech_model="phone_call")
+        gather = Gather(input='speech', 
+                        action='/call/twilio/handle-speech', 
+                        enhanced=True, 
+                        speech_model="phone_call", 
+                        speech_timeout=1,
+                        timeout=1)
         gather.say('ECC, What is your Emergency?')
         response.append(gather)
         
@@ -147,6 +152,7 @@ def handle_speech():
         sid = data.get('CallSid')
 
         history = Call.get_by_session_id(sid)
+        
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         results = loop.run_until_complete(asyncio.gather(
@@ -165,7 +171,7 @@ def handle_speech():
                     'sid': sid,
                     'severity_level': severity_level
                 }
-
+        
         ws_res = send_conversation_webhook(payload)
         res = {
             'payload':payload,
@@ -177,7 +183,12 @@ def handle_speech():
             response.dial(os.getenv('FORWARD_CALL_NUMBER'))
             return Response(str(response), 200, mimetype="application/xml")
         else:
-            gather = Gather(input='speech', enhanced=True, speech_model="phone_call")
+            gather = Gather(input='speech', 
+                            action='/call/twilio/handle-speech', 
+                            enhanced=True, 
+                            speech_model="phone_call", 
+                            speech_timeout=1,
+                            timeout=1)
             gather.say(answer)
             response.append(gather)
 
