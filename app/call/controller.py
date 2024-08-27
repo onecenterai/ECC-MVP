@@ -130,8 +130,8 @@ def ivr():
                         action='/call/twilio/handle-speech', 
                         enhanced=True, 
                         speech_model="phone_call", 
-                        speech_timeout=1,
-                        timeout=1)
+                        speech_timeout=2,
+                        timeout=2)
         gather.say('ECC, What is your Emergency?')
         response.append(gather)
         
@@ -187,8 +187,8 @@ def handle_speech():
                             action='/call/twilio/handle-speech', 
                             enhanced=True, 
                             speech_model="phone_call", 
-                            speech_timeout=1,
-                            timeout=1)
+                            speech_timeout=2,
+                            timeout=2)
             gather.say(answer)
             response.append(gather)
 
