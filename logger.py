@@ -5,21 +5,21 @@ from contextlib import contextmanager
 from io import StringIO
 
 #logger for signal wire consumer
-sw_logger = logging.getLogger('sw_logger')
-sw_logger.setLevel(logging.DEBUG)
+main_logger = logging.getLogger('main_logger')
+main_logger.setLevel(logging.DEBUG)
 
-sw_info_handler = logging.FileHandler('./logs/sw_log.log')
-sw_info_handler.setLevel(logging.INFO)
+main_info_handler = logging.FileHandler('./logs/main_log.log')
+main_info_handler.setLevel(logging.INFO)
 
-sw_err_handler = logging.FileHandler('./logs/sw_err.log')
-sw_err_handler.setLevel(logging.ERROR)
+main_err_handler = logging.FileHandler('./logs/main_err.log')
+main_err_handler.setLevel(logging.ERROR)
 
-sw_info_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-sw_info_handler.setFormatter(sw_info_format)
-sw_err_handler.setFormatter(sw_info_format)
+main_info_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+main_info_handler.setFormatter(main_info_format)
+main_err_handler.setFormatter(main_info_format)
 
-sw_logger.addHandler(sw_info_handler)
-sw_logger.addHandler(sw_err_handler)
+main_logger.addHandler(main_info_handler)
+main_logger.addHandler(main_err_handler)
 
 
 # logging for the qa_chain function

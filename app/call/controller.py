@@ -16,6 +16,8 @@ import whisper
 import numpy as np
 import torch
 
+from logger import main_logger
+
 load_dotenv()
 
 bp = Blueprint('call', __name__, template_folder='templates')
@@ -126,7 +128,14 @@ def ivr():
             'ws_res':ws_res
         }
 
-        gather = Gather(input='speech', action='/call/twilio/handle-speech', enhanced=True, speech_model="phone_call")
+        main_logger.info(str(res))
+
+        gather = Gather(input='speech', 
+                        action='/call/twilio/handle-speech', 
+                        enhanced=True, 
+                        speech_model="phone_call",)
+                        # speech_timeout=2,
+                        # timeout=2)
         gather.say('ECC, What is your Emergency?')
         response.append(gather)
         
@@ -135,18 +144,25 @@ def ivr():
         return str(response)
     
     except Exception as e:
+        main_logger.error(str(e))
         raise e
 
 @bp.post("/call/twilio/handle-speech")
 def handle_speech():
     try:
-        response = VoiceResponse()
-        data = request.values
-        question = data.get('SpeechResult').lower()
-        from_phone = data.get('Caller')
-        sid = data.get('CallSid')
+        try:
+            response = VoiceResponse()
+            data = request.values
+            question = data.get('SpeechResult').lower()
+            from_phone = data.get('Caller')
+            sid = data.get('CallSid')
+        except Exception as e:
+            main_logger.error(f'It seems twilio did not hear what the caller said here: {str(e)}')
+            response.say('Sorry I did not get that, could you please repeat yourself?')
+            return str(response)
 
         history = Call.get_by_session_id(sid)
+        
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         results = loop.run_until_complete(asyncio.gather(
@@ -165,19 +181,26 @@ def handle_speech():
                     'sid': sid,
                     'severity_level': severity_level
                 }
-
+        
         ws_res = send_conversation_webhook(payload)
         res = {
             'payload':payload,
             'ws_res':ws_res
         }
 
+        main_logger.info(str(res))
+
         if 'forward_call' in answer or 'human' in answer or 'agent' in answer:
             response.say('Okay, I will forward your call to a human agent, please wait')
             response.dial(os.getenv('FORWARD_CALL_NUMBER'))
             return Response(str(response), 200, mimetype="application/xml")
         else:
-            gather = Gather(input='speech', enhanced=True, speech_model="phone_call")
+            gather = Gather(input='speech', 
+                            action='/call/twilio/handle-speech', 
+                            enhanced=True, 
+                            speech_model="phone_call", )
+                            # speech_timeout=2,
+                            # timeout=2)
             gather.say(answer)
             response.append(gather)
 
@@ -188,7 +211,7 @@ def handle_speech():
         
     except Exception as e:
         # TODO: If error occur forward the call
-        print(e)
+        main_logger.error(str(e))
         response.say('An error occured')
         return str(response)
 
