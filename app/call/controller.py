@@ -133,7 +133,7 @@ def ivr():
         gather = Gather(input='speech', 
                         action='/call/twilio/handle-speech', 
                         enhanced=True, 
-                        speech_model="phone_call", )
+                        speech_model="phone_call",)
                         # speech_timeout=2,
                         # timeout=2)
         gather.say('ECC, What is your Emergency?')
@@ -150,11 +150,16 @@ def ivr():
 @bp.post("/call/twilio/handle-speech")
 def handle_speech():
     try:
-        response = VoiceResponse()
-        data = request.values
-        question = data.get('SpeechResult').lower()
-        from_phone = data.get('Caller')
-        sid = data.get('CallSid')
+        try:
+            response = VoiceResponse()
+            data = request.values
+            question = data.get('SpeechResult').lower()
+            from_phone = data.get('Caller')
+            sid = data.get('CallSid')
+        except Exception as e:
+            main_logger.error(f'It seems twilio did not hear what the caller said here: {str(e)}')
+            response.say('Sorry I did not get that, could you please repeat yourself?')
+            return str(response)
 
         history = Call.get_by_session_id(sid)
         
