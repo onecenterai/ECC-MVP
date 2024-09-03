@@ -157,7 +157,24 @@ def handle_speech():
             from_phone = data.get('Caller')
             sid = data.get('CallSid')
         except Exception as e:
-            main_logger.error(f'It seems twilio did not hear what the caller said here: {str(e)}')
+            payload = {
+                    'question': data.get('SpeechResult'),
+                    'answer': 'Sorry I did not get that, could you please repeat yourself?',
+                    'from_phone': from_phone,
+                    'sid': sid,
+                    'severity_level': 1
+                }
+        
+            ws_res = send_conversation_webhook(payload)
+            res = {
+                'payload':payload,
+                'ws_res':ws_res
+            }
+
+            main_logger.info(str(res))
+            
+            # It seems twilio did not hear what the caller said here: 
+            main_logger.error(f'{str(e)}')
             response.say('Sorry I did not get that, could you please repeat yourself?')
             return str(response)
 
